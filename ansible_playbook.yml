@@ -71,7 +71,7 @@
     # Pridani nove instance do skupiny
     - name: Groupping instance
       add_host:
-        hostname: {{ item.public_ip }}
+        hostname: "{{ item.public_ip }}"
         groupname: launched
         loop: "{{ ec2.instances }}"
 
