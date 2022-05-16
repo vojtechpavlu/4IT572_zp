@@ -1,8 +1,9 @@
 name: 'Deployment to EC2 instance'
 
 on:
-  workflow_dispatch:
   push:
+    branches:
+      - main
 
 jobs:
   Install:
