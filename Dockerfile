@@ -1,6 +1,6 @@
 FROM node:8
 
-COPY 4IT572_zp .
+COPY . .
 
 RUN npm install \
     && npm run build
