@@ -1,7 +1,7 @@
 
 # Instalace knihoven #########################################################
 - name: Libs installation
-  host: localhost
+  hosts: localhost
   connection: local
 
   tasks:
@@ -14,7 +14,7 @@
 
 # Odstraneni puvodni instance ################################################
 - name: Old EC2 Instance purge
-  host: localhost
+  hosts: localhost
   module_defaults:
     group/aws:
       aws_access_key: "{{ aws_access_key }}"
