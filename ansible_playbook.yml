@@ -1,0 +1,145 @@
+
+# Instalace knihoven #########################################################
+- name: Libs installation
+  host: localhost
+  connection: local
+
+  tasks:
+    - name: PIP installation (boto & boto3)
+      pip:
+        name:
+          - boto
+          - boto3
+
+
+# Odstraneni puvodni instance ################################################
+- name: Old EC2 Instance purge
+  host: localhost
+  module_defaults:
+    group/aws:
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      security_token: "{{ security_token }}"
+  connection: local
+
+  tasks:
+
+    # Udaje o instanci k odstranení
+    - name: data about instance
+      ec2_instance_facts:
+        region: us-east-1
+        filters:
+          "tag:eshop": 1
+      register: about_instances
+
+    # Vymaz instance
+    - name: Removing instance
+      ec2:
+        instance_ids: "{{ item.instance_id }}"
+        region: us-east-1
+        state: absent
+        wait: yes
+      with_items: "{{ about_instances.instances }}"
+
+
+# Tvorba nové EC2 instance ###################################################
+- name: New EC2 Instance creation and config
+  hosts: localhost
+  connection: local
+
+  tasks:
+
+    # Spusteni nove instance
+    - name: Launch EC2 instance
+      ec2:
+        instance_type: t2.micro
+        image: ami-0022f774911c1d690             # TODO
+        region: us-east-1
+        key_name: devops
+        vpc_subnet_id: subnet-00430c2eb3aab2e13     # TODO
+        assign_public_ip: yes
+        wait: yes
+        count: 1
+        group: eshop        # TODO
+        instance_tags:
+          eshop: 1
+        aws_access_key: "{{ aws_access_key }}"
+        aws_secret_key: "{{ aws_secret_key }}"
+        security_token: "{{ security_token }}"
+      register: ec2   # ulozeni
+
+    # Pridani nove instance do skupiny
+    - name: Groupping instance
+      add_host:
+        hostname: {{ item.public_ip }}
+        groupname: launched
+        loop: "{{ ec2.instances }}"
+
+    # Zpozdene SSH
+    - name: Wait for SSH
+      delegate_to: "{{ item.public_ip }}"
+      wait_for_connection:
+        delay: 30
+        timeout: 300
+      loop: "{{ ec2.instances }}"
+
+
+# Deployment #################################################################
+- name: Deployment to EC2 & Config
+  hosts: launched
+  remote_user: ec2-user
+  connection: ssh
+
+  tasks:
+
+    # Instalace knihoven
+    - name: Install git and docker
+      yum:
+        name:
+          - git
+          - docker
+        state: latest
+        update_cache: yes
+      become: yes   # sudo
+
+    #
+    - service:
+        name: docker
+        state: started
+        enabled: yes
+      become: yes
+
+    # Spusteni dockeru pri spusteni systemu
+    - name: Docker on startup
+      shell: systemctl enable docker
+      become: yes
+
+    # Prava pro docker
+    - name: Rights to Docker
+      shell: usermod -a -G docker ec2-user
+      become: yes
+
+    # Clone z githubu
+    - name: Clone from my github
+      git:
+        repo: https://github.com/vojtechpavlu/4IT572_zp.git
+        dest: ./app
+
+    # Build dockeru
+    - name: Build Docker
+      shell: cd app && docker build -t eshop-app:latest .
+      become: yes
+
+    # Spusteni dockeru
+    - name: Running docker
+      shell: docker run -t -p 80:3000 eshop-app
+      async: 45
+      poll: 0
+      become: yes
+
+    - wait_for:
+        port:
+          80
+
+
+
