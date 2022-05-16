@@ -122,7 +122,7 @@ jobs:
           vault_password: ${{ secrets.VAULT_PASSWORD }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           options: |
-            -- verbose
+            --verbose
 
 
 
