@@ -127,7 +127,7 @@
 
     # Build dockeru
     - name: Build Docker
-      shell: cd app/4IT572_zp && docker build -t eshop-app:latest .
+      shell: cd app && docker build -t eshop-app:latest .
       become: yes
 
     # Spusteni dockeru
