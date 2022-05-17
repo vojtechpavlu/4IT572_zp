@@ -26,7 +26,7 @@
 
     # Udaje o instanci k odstranení
     - name: data about instance
-      ec2_instance_facts:
+      ec2_instance_info:
         region: us-east-1
         filters:
           "tag:eshop": 1
